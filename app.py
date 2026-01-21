@@ -6,14 +6,18 @@ import json
 from datetime import datetime, timedelta
 import random
 import math
+import os
 
 app = Flask(__name__)
 CORS(app)
 
+# Railway port configuration
+PORT = int(os.environ.get('PORT', 5000))
+
 # Cache configuration
 cache = Cache(app, config={
     'CACHE_TYPE': 'simple',
-    'CACHE_DEFAULT_TIMEOUT': 1800  # 30 minutes
+    'CACHE_DEFAULT_TIMEOUT': 1800
 })
 
 # NeuralFoot AI Configuration
@@ -25,7 +29,7 @@ class NeuralFootAI:
         self.api_key = RAPIDAPI_KEY
         self.api_host = RAPIDAPI_HOST
         self.base_url = f"https://{self.api_host}"
-        self.model_version = "NeuralFoot AI v3.1"
+        self.model_version = "NeuralFoot AI v3.2 Railway"
     
     def get_fixtures(self):
         """Get fixtures from RapidAPI"""
@@ -37,12 +41,14 @@ class NeuralFootAI:
         }
         
         try:
-            response = requests.get(url, headers=headers, timeout=10)
+            response = requests.get(url, headers=headers, timeout=15)
             if response.status_code == 200:
                 return response.json()
             else:
+                print(f"API Status: {response.status_code}")
                 return self.get_demo_matches()
         except Exception as e:
+            print(f"API Error: {e}")
             return self.get_demo_matches()
     
     def get_demo_matches(self):
@@ -78,6 +84,26 @@ class NeuralFootAI:
                     "home_odds": 1.5,
                     "draw_odds": 4.2,
                     "away_odds": 6.0
+                },
+                {
+                    "home_team": "AC Milan",
+                    "away_team": "Inter Milan",
+                    "date": (datetime.now() + timedelta(days=4)).strftime("%Y-%m-%d"),
+                    "time": "19:45",
+                    "league": "Serie A",
+                    "home_odds": 2.8,
+                    "draw_odds": 3.2,
+                    "away_odds": 2.6
+                },
+                {
+                    "home_team": "Paris Saint-Germain",
+                    "away_team": "Olympique Lyon",
+                    "date": (datetime.now() + timedelta(days=5)).strftime("%Y-%m-%d"),
+                    "time": "21:00",
+                    "league": "Ligue 1",
+                    "home_odds": 1.4,
+                    "draw_odds": 4.5,
+                    "away_odds": 7.0
                 }
             ]
         }
@@ -161,55 +187,22 @@ ai_predictor = NeuralFootAI()
 def home():
     return jsonify({
         'service': 'NeuralFoot AI Premium Predictor',
-        'version': '3.1',
+        'version': '3.2',
         'status': 'active',
-        'features': [
-            'AI-powered predictions',
-            '30-minute caching',
-            'Real-time data',
-            'Expected goals',
-            '68-82% accuracy'
-        ]
+        'port': PORT,
+        'railway_deployed': True
     })
 
 @app.route('/api/matches')
-@cache.cached(timeout=1800)  # 30-minute cache
 def get_matches():
-    """Get matches with AI predictions (CACHED)"""
+    """Get matches with AI predictions"""
     try:
         matches = ai_predictor.get_matches_with_predictions()
         return jsonify({
             'status': 'success',
             'count': len(matches),
             'matches': matches,
-            'cached_until': (datetime.now() + timedelta(minutes=30)).isoformat(),
             'generated_at': datetime.now().isoformat()
-        })
-    except Exception as e:
-        return jsonify({
-            'status': 'error',
-            'message': str(e)
-        }), 500
-
-@app.route('/api/predict/<home_team>/<away_team>')
-def predict_match(home_team, away_team):
-    """Predict specific match"""
-    try:
-        mock_match = {
-            'home_team': home_team.replace('_', ' '),
-            'away_team': away_team.replace('_', ' '),
-            'home_odds': 2.0,
-            'draw_odds': 3.2,
-            'away_odds': 3.5
-        }
-        
-        prediction = ai_predictor.calculate_prediction(mock_match)
-        
-        return jsonify({
-            'home_team': home_team.replace('_', ' '),
-            'away_team': away_team.replace('_', ' '),
-            'prediction': prediction,
-            'timestamp': datetime.now().isoformat()
         })
     except Exception as e:
         return jsonify({
@@ -222,9 +215,11 @@ def health():
     return jsonify({
         'status': 'healthy',
         'timestamp': datetime.now().isoformat(),
-        'service': 'neuralfoot-ai-cached',
-        'cache_status': 'active'
+        'service': 'neuralfoot-ai-railway',
+        'port': PORT
     })
 
+# Railway deployment entry point
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    print(f"Starting NeuralFoot AI on port {PORT}")
+    app.run(host='0.0.0.0', port=PORT, debug=False)
