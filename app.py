@@ -1,58 +1,16 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify
 from flask_cors import CORS
-from flask_caching import Cache
-import requests
-import json
 from datetime import datetime, timedelta
 import random
-import math
-import os
 
 app = Flask(__name__)
 CORS(app)
 
-# Railway port configuration
-PORT = int(os.environ.get('PORT', 5000))
-
-# Cache configuration
-cache = Cache(app, config={
-    'CACHE_TYPE': 'simple',
-    'CACHE_DEFAULT_TIMEOUT': 1800
-})
-
-# NeuralFoot AI Configuration
-RAPIDAPI_KEY = "d1c02a4302mshcf125bdb063ad03p1d27ebjsna81f0ce6abc9"
-RAPIDAPI_HOST = "free-api-live-football-data.p.rapidapi.com"
-
 class NeuralFootAI:
     def __init__(self):
-        self.api_key = RAPIDAPI_KEY
-        self.api_host = RAPIDAPI_HOST
-        self.base_url = f"https://{self.api_host}"
-        self.model_version = "NeuralFoot AI v3.2 Railway"
-    
-    def get_fixtures(self):
-        """Get fixtures from RapidAPI"""
-        url = f"{self.base_url}/fixtures"
-        
-        headers = {
-            "X-RapidAPI-Key": self.api_key,
-            "X-RapidAPI-Host": self.api_host
-        }
-        
-        try:
-            response = requests.get(url, headers=headers, timeout=15)
-            if response.status_code == 200:
-                return response.json()
-            else:
-                print(f"API Status: {response.status_code}")
-                return self.get_demo_matches()
-        except Exception as e:
-            print(f"API Error: {e}")
-            return self.get_demo_matches()
+        self.model_version = "NeuralFoot AI v3.6 PythonAnywhere Ready"
     
     def get_demo_matches(self):
-        """Demo matches when API fails"""
         return {
             "fixtures": [
                 {
@@ -109,7 +67,6 @@ class NeuralFootAI:
         }
     
     def calculate_prediction(self, match):
-        """AI prediction algorithm"""
         home_odds = float(match.get('home_odds', 2.0))
         draw_odds = float(match.get('draw_odds', 3.0))
         away_odds = float(match.get('away_odds', 3.0))
@@ -157,22 +114,16 @@ class NeuralFootAI:
         }
     
     def get_matches_with_predictions(self):
-        """Get matches with AI predictions"""
-        api_data = self.get_fixtures()
-        
+        api_data = self.get_demo_matches()
         matches = []
-        fixtures = api_data.get('fixtures', []) if isinstance(api_data, dict) else []
         
-        if not fixtures:
-            fixtures = self.get_demo_matches()['fixtures']
-        
-        for match in fixtures[:6]:  # Limit to 6 matches
+        for match in api_data['fixtures']:
             match_with_prediction = {
-                'home_team': match.get('home_team', 'TBD'),
-                'away_team': match.get('away_team', 'TBD'),
-                'date': match.get('date', datetime.now().strftime("%Y-%m-%d")),
-                'time': match.get('time', '15:00'),
-                'league': match.get('league', 'Premium League'),
+                'home_team': match['home_team'],
+                'away_team': match['away_team'],
+                'date': match['date'],
+                'time': match['time'],
+                'league': match['league'],
                 'prediction': self.calculate_prediction(match),
                 'timestamp': datetime.now().isoformat(),
                 'model_version': self.model_version
@@ -186,16 +137,14 @@ ai_predictor = NeuralFootAI()
 @app.route('/')
 def home():
     return jsonify({
-        'service': 'NeuralFoot AI Premium Predictor',
-        'version': '3.2',
+        'service': 'NeuralFoot AI - PythonAnywhere Ready',
+        'version': '3.6',
         'status': 'active',
-        'port': PORT,
-        'railway_deployed': True
+        'platform': 'Local → PythonAnywhere'
     })
 
 @app.route('/api/matches')
 def get_matches():
-    """Get matches with AI predictions"""
     try:
         matches = ai_predictor.get_matches_with_predictions()
         return jsonify({
@@ -215,11 +164,9 @@ def health():
     return jsonify({
         'status': 'healthy',
         'timestamp': datetime.now().isoformat(),
-        'service': 'neuralfoot-ai-railway',
-        'port': PORT
+        'service': 'neuralfoot-ai-clean'
     })
 
-# Railway deployment entry point
+# Local testing entry point
 if __name__ == '__main__':
-    print(f"Starting NeuralFoot AI on port {PORT}")
-    app.run(host='0.0.0.0', port=PORT, debug=False)
+    app.run(debug=True, host='0.0.0.0', port=5000)
